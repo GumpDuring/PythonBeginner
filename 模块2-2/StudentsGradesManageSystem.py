@@ -1,3 +1,17 @@
+import json
+
+def load_data(filename="students.json"):
+    """加载数据"""
+    try:
+        with open(filename,"r",encoding="utf-8") as f:return json.load(f)
+    except FileNotFoundError:
+        print("暂无历史数据")
+
+def save_data(students,filename="students.json"):
+    """保存数据"""
+    with open(filename,'w',encoding="utf-8") as f: json.dump(students, f, ensure_ascii=False, indent=2)
+    print("数据已保存！")
+
 def add_students(students,name,grades):
     """添加学生"""
     students[name] = grades
@@ -36,7 +50,7 @@ def main():
     print("-"*30)
     print("欢迎使用学生成绩管理系统！")
     print("-"*30)
-    students = {}
+    students = load_data()
     while True:
         attempt = input("请选择操作！\n1,添加学生。\n2,查询数据。\n3,计算平均分。\n4,退出。\n(输入1/2/3/4)").strip()
         if attempt == "1":
@@ -58,6 +72,7 @@ def main():
         elif attempt == "3":
             grade_average(students)
         elif attempt == "4":
+            save_data(students)
             break
         else:
             print("无效选择！")
