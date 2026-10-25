@@ -1,0 +1,3 @@
+road1.jpg | D00:2, D40:1
+road2.jpg | D20:5
+road3.jpg | D00:1, D10:3, D40:2

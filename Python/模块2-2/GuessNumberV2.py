@@ -32,24 +32,25 @@ def tittle(attempts,level,TITLE_RULES):
             return t
     
 def main():
+    TITLE_RULES = {
+    '1':[(3,'大神'),(6,'高手'),(float('inf'),'菜鸟')],
+    '2':[(5,'大神'),(8,'高手'),(float('inf'),'菜鸟')],
+    '3':[(7,'大神'),(12,'高手'),(float('inf'),'菜鸟')],
+    '4':[(10,'大神'),(16,'高手'),(float('inf'),'菜鸟')]
+    }
+    RANGES = {
+    '1':100,
+    '2':250,
+    '3':500,
+    '4':1000
+    } 
     print('-'*40)
     print('欢迎游玩猜数字游戏！')
     print('-'*40)
-    RANGES = {
-        '1':100,
-        '2':250,
-        '3':500,
-        '4':1000
-    } 
     level = get_level(RANGES)
     key = get_key(level,RANGES)
     attempt = 0
-    TITLE_RULES = {
-        '1':[(3,'大神'),(6,'高手'),(float('inf'),'菜鸟')],
-        '2':[(5,'大神'),(8,'高手'),(float('inf'),'菜鸟')],
-        '3':[(7,'大神'),(12,'高手'),(float('inf'),'菜鸟')],
-        '4':[(10,'大神'),(16,'高手'),(float('inf'),'菜鸟')]
-    }
+
     while True:
         num = judge('请输入你的猜测！')
         attempt += 1

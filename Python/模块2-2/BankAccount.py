@@ -11,7 +11,7 @@ def judge(prompt=None,mode=float):
     return a
 
 def judgeA(prompt=None,back=None,mode=float):
-    
+
     while True:
         try:
             a = mode(input(f'请输入{prompt}:'))
@@ -20,8 +20,8 @@ def judgeA(prompt=None,back=None,mode=float):
             print(f'请输入正确的{back}:')
     return a
 
-def getac(object,code):
-    ac = object.AccountHouse.get(code)
+def getac(ob,code):
+    ac = ob.AccountHouse.get(code)
     return ac
     
 class Account:
@@ -45,11 +45,11 @@ class Account:
         if self.key != key:
             print('密码错误！')
             return False
-        if amount > self.balance:
-            print(f'交易失败！余额不足。')
-            return False
-        elif self.status == 'freeze':
+        if self.status == 'freeze':
             print('交易失败！账户已被冻结。')
+            return False
+        elif amount > self.balance:
+            print(f'交易失败！余额不足。')
             return False
         else:
             self.balance -= amount
@@ -87,7 +87,7 @@ class creditAccount(Account):
         elif self.status == 'freeze':
             print('交易失败！账户已被冻结。')
             return False
-        elif amount < self.balance:
+        elif amount <= self.balance:
             self.balance -= amount
             print(f'交易成功！\n卡号:{self.code}/持有人:{self.owner}/余额:{self.balance}')
             return True
@@ -106,9 +106,7 @@ class AccountManager:
         self.Notes = {}
     
     def add(self,t,code,key,owner,balance):
-        if getac(self,code) != None:
-            print('卡号已占用！')
-        elif t == 'save':
+        if t == 'save':
             self.AccountHouse[code] = SavingsAccount(code, owner, key, balance)
         elif t =='credit':
             self.AccountHouse[code] = creditAccount(code, owner, key, balance)
@@ -118,12 +116,16 @@ class AccountManager:
         ac = getac(self,code)
         if ac == None:
             print('操作失败！卡号不存在！')
+            return False
         elif ac.balance > 0:
             print('请转移账户余额！')
+            return False
         elif ac.balance < 0:
             print('请遵守信用规则还款！')
+            return False
         else:
             message = self.AccountHouse.pop(code)
+            self.Notes.pop(code)
             print(f'已删除{message}!')
         self.save()
 
@@ -133,10 +135,11 @@ class AccountManager:
                 house = json.load(f)
                 for code1,a in house.items():
                     if a['brand'] == 'save':
-                        self.AccountHouse[code1] = SavingsAccount(code1,a['owner'],a['key'],a['balance'])
+                        self.AccountHouse[int(code1)] = SavingsAccount(code1,a['owner'],a['key'],a['balance'],a['status'])
                     else:
-                        self.AccountHouse[code1] = creditAccount(code1,a['owner'],a['key'],a['balance'])                        
-        except (FileNotFoundError,json.JSONDecodeError):
+                        self.AccountHouse[int(code1)] = creditAccount(code1,a['owner'],a['key'],a['balance'],a['status'])                        
+        
+        except (FileNotFoundError,json.JSONDecodeError,AttributeError):
             print('无已存档账户数据！')
             return
 
@@ -144,7 +147,7 @@ class AccountManager:
             with open('BankNotes.json','r',encoding='utf-8') as g:
                 notes = json.load(g)
                 for code2,s in notes.items():
-                    self.Notes[code2] = s
+                    self.Notes[int(code2)] = s
         except (FileNotFoundError,json.JSONDecodeError):
             print('无已存档交易数据！')
             return
@@ -179,6 +182,7 @@ class AccountManager:
         ac = getac(self,code)
         if ac == None:
             print('卡号不存在！') 
+            return False
         if ac.key != key:
             print('密码错误！')
         else:
@@ -197,8 +201,12 @@ class AccountManager:
             print('转入卡卡号错误！')
             return False
         if ac1.status == 'freeze':
-            print('交易失败！账户已被冻结。')
+            print('交易失败！转出账户已被冻结。')
             return False
+        if ac2.status == 'freeze':
+            print('交易失败！转入账户已被冻结。')
+            return False
+        amount = amount*1.01
         a = ac1.withdraw(amount,key)
         if a == False:
             return False
@@ -261,6 +269,8 @@ def main():
                 if r == True:
                     account.note(code,'存款',amount)
                     break
+                else:
+                    break
     elif service == 3:
         code1 = judgeA('转出账号','正确的账号，形式应为纯数字！',int)
         code2 = judgeA('转入账号','正确的账号，形式应为纯数字！',int)
@@ -277,10 +287,10 @@ def main():
         ac = getac(account,code)      
         if ac == None:
             print('账号不存在！')
-            pass
-        amount = account.interester(code,key)
-        if amount != False:
-            account.note(code,'结息',amount)
+        else:
+            amount = account.interester(code,key)
+            if amount != False:
+                account.note(code,'结息',amount)
     
     elif service == 5:
         code = judgeA('账号','正确的账号，形式应为纯数字！',int)
@@ -296,9 +306,9 @@ def main():
             notes = account.Notes.get(code)
             print(notes)
 
-    elif service == 7:
-        adminkey = input('请输入管理员密码:')
+    elif service == 7:  
         while True:
+            adminkey = input('请输入管理员密码:')
             if account.adminkey != adminkey:
                 print('密码错误！')
             else:
@@ -306,30 +316,36 @@ def main():
                 c = judge('序号',int)
                 if c == 1:
                     code = judgeA('账号','正确的账号，形式应为纯数字！',int)
-                    owner = input('请输入所有者:')
-                    while True:
-                        key = input('请设置密码:')
-                        key1 = input('请确认密码:')
-                        if key == key1:
-                            print('设置成功！')
-                            break
-                        else:
-                            print('两次密码不一致，请重试！')
-                    account.add('save',code,key,owner,0)
-                    break
+                    if getac(account,code) != None:
+                        print('卡号已占用！')
+                    else:
+                        owner = input('请输入所有者:')
+                        while True:
+                            key = input('请设置密码:')
+                            key1 = input('请确认密码:')
+                            if key == key1:
+                                print('设置成功！')
+                                break
+                            else:
+                                print('两次密码不一致，请重试！')
+                        account.add('save',code,key,owner,0)
+                        break
                 elif c == 2:
                     code = judgeA('账号','正确的账号，形式应为纯数字！',int)
-                    owner = input('请输入所有者:')
-                    while True:
-                        key = input('请设置密码:')
-                        key1 = input('请确认密码:')
-                        if key == key1:
-                            print('设置成功！')
-                            break
-                        else:
-                            print('两次密码不一致，请重试！')
-                    account.add('credit',code,key,owner,0)
-                    break
+                    if getac(account,code) != None:
+                        print('卡号已占用！')
+                    else:
+                        owner = input('请输入所有者:')
+                        while True:
+                            key = input('请设置密码:')
+                            key1 = input('请确认密码:')
+                            if key == key1:
+                                print('设置成功！')
+                                break
+                            else:
+                                print('两次密码不一致，请重试！')
+                        account.add('credit',code,key,owner,0)
+                        break
                 else:
                     print('请正确选择！')
 
@@ -342,9 +358,10 @@ def main():
                 code = judgeA('销户账号','正确的账号，形式应为纯数字！',int)
                 account.delete(code)
                 break
-    elif service ==9:
-        adminkey = input('请输入管理员密码:')      
+    
+    elif service ==9:     
         while True:
+            adminkey = input('请输入管理员密码:')
             print('1.冻结\n2.解冻')
             a = judge('序号',int)
             if account.adminkey != adminkey:
@@ -353,14 +370,20 @@ def main():
                 if a == 1:
                     code = judgeA('账号','正确的账号，形式应为纯数字！',int)
                     ac = getac(account,code)
+                    if ac == None:
+                        break
                     ac.status = 'freeze'
                     print(f'已冻结账户:{code}')
+                    account.save()
                     break
                 elif a == 2:
                     code = judgeA('账号','正确的账号，形式应为纯数字！',int)
-                    ac = getac(account,code)         
+                    ac = getac(account,code)    
+                    if ac == None:
+                        break     
                     ac.status = 'normal'
                     print(f'已解冻账户:{code}')
+                    account.save()
                     break          
                 else:
                     print('请正确选择！')
@@ -377,7 +400,7 @@ if __name__ == "__main__":
     try:
         with open("ManagerAC.json","r",encoding='utf-8') as f:
             data = json.load(f)
-            for c,s in data.items:
+            for c,s in data.items():
                 manager[c] = AccountManager(c,s['key'])
     except (FileNotFoundError,json.JSONDecodeError):
         pass 
@@ -402,10 +425,10 @@ if __name__ == "__main__":
                     print('账号不存在！')
                     continue
                 else:
-                    if account.key != key:
+                    if account.adminkey != key:
                         print('密码错误')
                         continue
-                    elif account.key == key:
+                    elif account.adminkey == key:
                         print('登录成功！')
                         account.Loading()
                         break
@@ -414,6 +437,3 @@ if __name__ == "__main__":
         a = main()
         if a == 0:
             break
-    
-
-
